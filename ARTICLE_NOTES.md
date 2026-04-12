@@ -63,15 +63,13 @@ Modern AI coding tools (Claude Code, Cursor, Aider, etc.) all run in the termina
 
 1. **OrbStack doesn't run a real sshd** — OrbStack proxies SSH through its own helper app, so `AcceptEnv`/`SendEnv` don't work. `sudo systemctl restart ssh` fails with "Unit not found." Fixed by adding `|| true` so the script doesn't abort. For real remote machines with standard sshd, `SendEnv`/`AcceptEnv` works as expected.
 
-2. **Passing the token without typing it on the VM** — Rather than SSHing in and exporting manually, pass it inline from the Mac: `ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN ~/bin/chezmoi apply --source ~/dotfiles"`. The variable is expanded on the Mac side before the command is sent.
-
-3. **chezmoi template guard for the token** — `{{- if env "GITHUB_TOKEN" }}` ensures the `gh auth` line is only emitted when the variable is present. Without the guard, chezmoi would render an empty string and `gh auth login` would fail.
-
-4. **`sh -c "$(curl …)"` breaks over SSH** — The standard chezmoi one-liner uses `sh -c "$(curl -fsLS get.chezmoi.io)"`. Run locally this is fine, but inside an SSH double-quoted string, `$(curl …)` expands on the Mac before the command is sent — embedding the entire install script as a literal argument to `sh -c`, which breaks its internal quoting. Fix: pipe curl's output to `sh -s` on the remote instead:
+2. **`sh -c "$(curl …)"` breaks over SSH** — The standard chezmoi one-liner uses `sh -c "$(curl -fsLS get.chezmoi.io)"`. Run locally this is fine, but inside an SSH double-quoted string, `$(curl …)` expands on the Mac before the command is sent — embedding the entire install script as a literal argument to `sh -c`, which breaks its internal quoting. Fix: pipe curl's output to `sh -s` on the remote instead:
    ```bash
    curl -fsLS get.chezmoi.io | ssh host "GITHUB_TOKEN=$GITHUB_TOKEN sh -s -- init --apply --source ~/dotfiles"
    ```
    curl runs on the Mac, the script executes on the VM, and the chezmoi args are passed cleanly via `sh -s`.
+
+3. **gh CLI doesn't need `gh auth login`** — gh reads `GITHUB_TOKEN` from the environment automatically. No auth step needed in the bootstrap script. Just forward the variable over SSH with `SendEnv GITHUB_TOKEN` in `~/.ssh/config` and gh works in every session.
 
 ### Relevance to AI coding tools
 gh CLI means you can clone any repo immediately after bootstrap — useful for spinning up a fresh VM for an AI coding session on a specific project without any manual setup.

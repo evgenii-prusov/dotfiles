@@ -127,25 +127,12 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # Install tools
 brew install starship gh
-
-# Allow GITHUB_TOKEN to be forwarded over SSH
-if ! grep -q "AcceptEnv GITHUB_TOKEN" /etc/ssh/sshd_config; then
-  echo "AcceptEnv GITHUB_TOKEN" | sudo tee -a /etc/ssh/sshd_config
-  sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || true
-fi
-
-# Authenticate gh CLI if token was forwarded
-{{- if env "GITHUB_TOKEN" }}
-echo "{{ env "GITHUB_TOKEN" }}" | gh auth login --with-token
-{{- end }}
 ```
 
-A few things worth noting:
+Two things worth noting:
 
 - `NONINTERACTIVE=1` skips all prompts in the Homebrew installer — essential for scripted use.
 - Brew is added to `PATH` immediately after install so subsequent `brew install` calls work within the same script run.
-- The `AcceptEnv` block configures sshd to accept a forwarded `GITHUB_TOKEN`. The `|| true` means the script doesn't fail if the SSH service can't be restarted (OrbStack proxies SSH through its own helper rather than running a standard sshd, so the restart will silently no-op there).
-- The `{{- if env "GITHUB_TOKEN" }}` block is a chezmoi template guard — it only emits the `gh auth` line when the variable is present at apply time.
 
 ### Update dot_zshrc
 
@@ -167,12 +154,16 @@ Both blocks are guarded so `.zshrc` doesn't error on machines that haven't run i
 
 ### Configure SSH to forward the token
 
+gh CLI reads `GITHUB_TOKEN` from the environment automatically — no `gh auth login` needed. You just need the variable forwarded when you SSH in.
+
 Add a `Host orb` block to your Mac's `~/.ssh/config`, **before** the OrbStack `Include` line (SSH uses first-match, and OrbStack's include already defines the `orb` host — the block below only adds `SendEnv` to it):
 
 ```
 Host orb
   SendEnv GITHUB_TOKEN
 ```
+
+With `GITHUB_TOKEN` set on your Mac, every `ssh dotfiles-test@orb` session will have it available automatically, and `gh` will work without any explicit login step.
 
 ### Test on a fresh machine
 
@@ -181,7 +172,7 @@ orbctl create ubuntu dotfiles-test
 orb push -m dotfiles-test ~/projects/dotfiles dotfiles
 ```
 
-Bootstrap chezmoi and apply, passing the token from your Mac environment:
+Bootstrap chezmoi and apply:
 
 ```bash
 curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN sh -s -- init --apply --source ~/dotfiles"
@@ -189,16 +180,13 @@ curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN sh
 
 The naive form — `ssh … "sh -c '$(curl …)'"` — doesn't work because `$(curl …)` expands on the Mac before the command is sent, embedding the entire install script as a literal string in the SSH invocation and breaking its internal quoting. Piping curl's output to `sh -s` on the remote avoids this entirely: curl runs on the Mac, the script runs on the VM, and `-- init --apply --source ~/dotfiles` are passed as arguments to it.
 
-Note: OrbStack proxies SSH through its own helper rather than a real sshd, so `SendEnv`/`AcceptEnv` doesn't work there — we pass the token inline in the SSH command instead. On standard remote machines (Azure VMs, etc.) with a real sshd, `SendEnv` in your `~/.ssh/config` will forward it automatically without any inline passing.
-
 Verify:
 
 ```bash
 ssh dotfiles-test@orb
 
 # Starship prompt should render
-# Verify gh is authenticated
-gh auth status
+gh auth status   # should show logged in via GITHUB_TOKEN
 gh repo list
 ```
 

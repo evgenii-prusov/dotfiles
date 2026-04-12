@@ -18,7 +18,3 @@ if ! grep -q "AcceptEnv GITHUB_TOKEN" /etc/ssh/sshd_config; then
   sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || true
 fi
 
-# Authenticate gh CLI if token was forwarded
-{{- if env "GITHUB_TOKEN" }}
-echo "{{ env "GITHUB_TOKEN" }}" | gh auth login --with-token
-{{- end }}
