@@ -12,3 +12,13 @@ bindkey "^H" backward-delete-char # Backspace (alternative)
 bindkey "^[[3~" delete-char       # Delete key
 bindkey "^[[H" beginning-of-line  # Home
 bindkey "^[[F" end-of-line        # End
+
+# Homebrew (Linux)
+if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Starship prompt
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi

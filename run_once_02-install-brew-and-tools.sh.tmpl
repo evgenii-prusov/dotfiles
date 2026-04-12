@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+# Install Linuxbrew if not already installed
+if ! command -v brew &>/dev/null; then
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# Add brew to PATH for the rest of this script
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# Install tools
+brew install starship
