@@ -1,0 +1,14 @@
+# ~/.zshrc
+
+# Fall back to xterm-256color if the TERM isn't set or has no terminfo entry on this machine
+if [[ -z "$TERM" ]] || ! infocmp "$TERM" &>/dev/null; then
+  export TERM=xterm-256color
+fi
+
+# Key bindings
+bindkey -e                        # Emacs key bindings (default for most terminals)
+bindkey "^?" backward-delete-char # Backspace
+bindkey "^H" backward-delete-char # Backspace (alternative)
+bindkey "^[[3~" delete-char       # Delete key
+bindkey "^[[H" beginning-of-line  # Home
+bindkey "^[[F" end-of-line        # End
