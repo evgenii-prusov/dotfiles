@@ -175,10 +175,12 @@ orb push -m dotfiles-test ~/projects/dotfiles dotfiles
 Bootstrap chezmoi and apply:
 
 ```bash
-curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN sh -s -- init --apply --source ~/dotfiles"
+curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "sh -s -- init --apply --source ~/dotfiles"
 ```
 
 The naive form — `ssh … "sh -c '$(curl …)'"` — doesn't work because `$(curl …)` expands on the Mac before the command is sent, embedding the entire install script as a literal string in the SSH invocation and breaking its internal quoting. Piping curl's output to `sh -s` on the remote avoids this entirely: curl runs on the Mac, the script runs on the VM, and `-- init --apply --source ~/dotfiles` are passed as arguments to it.
+
+No `GITHUB_TOKEN` needed during bootstrap — the script doesn't use it. gh reads the token from the environment automatically in interactive sessions, forwarded via `SendEnv` in your SSH config.
 
 Verify:
 

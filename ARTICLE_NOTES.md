@@ -65,9 +65,9 @@ Modern AI coding tools (Claude Code, Cursor, Aider, etc.) all run in the termina
 
 2. **`sh -c "$(curl …)"` breaks over SSH** — The standard chezmoi one-liner uses `sh -c "$(curl -fsLS get.chezmoi.io)"`. Run locally this is fine, but inside an SSH double-quoted string, `$(curl …)` expands on the Mac before the command is sent — embedding the entire install script as a literal argument to `sh -c`, which breaks its internal quoting. Fix: pipe curl's output to `sh -s` on the remote instead:
    ```bash
-   curl -fsLS get.chezmoi.io | ssh host "GITHUB_TOKEN=$GITHUB_TOKEN sh -s -- init --apply --source ~/dotfiles"
+   curl -fsLS get.chezmoi.io | ssh host "sh -s -- init --apply --source ~/dotfiles"
    ```
-   curl runs on the Mac, the script executes on the VM, and the chezmoi args are passed cleanly via `sh -s`.
+   curl runs on the Mac, the script executes on the VM, and the chezmoi args are passed cleanly via `sh -s`. No env vars needed in the bootstrap command — the script doesn't use them.
 
 3. **gh CLI doesn't need `gh auth login`** — gh reads `GITHUB_TOKEN` from the environment automatically. No auth step needed in the bootstrap script. Just forward the variable over SSH with `SendEnv GITHUB_TOKEN` in `~/.ssh/config` and gh works in every session.
 
