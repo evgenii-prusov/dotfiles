@@ -75,3 +75,27 @@ Modern AI coding tools (Claude Code, Cursor, Aider, etc.) all run in the termina
 gh CLI means you can clone any repo immediately after bootstrap — useful for spinning up a fresh VM for an AI coding session on a specific project without any manual setup.
 
 ---
+
+## Iteration 3 — Shell plugins (Zinit)
+
+### What was built
+- Zinit plugin manager bootstrap added to `dot_zshrc` — self-installs on first shell open
+- `zsh-users/zsh-completions` — extended completion definitions
+- `zsh-users/zsh-autosuggestions` — fish-style grey ghost suggestions from history
+- `zsh-users/zsh-syntax-highlighting` — colors valid/invalid commands as you type
+
+### Why no new run_once_ script
+Zinit is pure zsh — no apt or brew dependency. The bootstrap snippet in `.zshrc` clones the repo on first run. This keeps the run_once_ scripts focused on system-level installs; plugin management is a shell concern.
+
+### Plugin load order gotchas
+Order is load-order sensitive:
+- `zsh-completions` must come before `compinit` — it extends `fpath`, which `compinit` scans at init time. Load it after and the extra completions are invisible.
+- `zsh-syntax-highlighting` must be sourced last — it works by wrapping zle (zsh line editor) widgets. Any plugin loaded after it won't have its widgets wrapped, meaning keystrokes in those plugins won't trigger highlighting correctly.
+
+### First login behavior
+On first SSH after applying, Zinit clones itself + all three plugin repos. You'll see git output. This is expected and only happens once — subsequent logins are fast.
+
+### Relevance to AI coding tools
+Syntax highlighting gives instant feedback on typos in commands before you run them — especially useful when working fast during an AI-assisted session. Autosuggestions make it easy to re-run long commands (build commands, docker runs) without retyping.
+
+---

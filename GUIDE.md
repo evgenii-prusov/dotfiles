@@ -201,4 +201,60 @@ git commit -m "iteration 2: homebrew + starship + gh cli"
 
 ---
 
-*More iterations coming — next up: shell plugins with Zinit.*
+## Iteration 3 — Shell plugins (Zinit)
+
+With a working prompt, the shell is usable but bare. This iteration adds three quality-of-life plugins via Zinit: command autosuggestions, syntax highlighting, and tab completions.
+
+### Why Zinit
+
+Zinit (`zdharma-continuum/zinit`) is a fast, actively maintained zsh plugin manager. The key advantage here: it's a pure-zsh tool that installs itself on first shell open — no brew dependency, no extra `run_once_` script. The bootstrap snippet clones the repo once, and after that it's just `source`.
+
+### Update dot_zshrc
+
+Add the following after the Starship block:
+
+```zsh
+# Zinit plugin manager
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [[ ! -d "$ZINIT_HOME" ]]; then
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+source "${ZINIT_HOME}/zinit.zsh"
+
+# Plugins — zsh-completions must come before compinit, syntax-highlighting last
+zinit light zsh-users/zsh-completions
+autoload -Uz compinit && compinit
+zinit light zsh-users/zsh-autosuggestions
+zinit light zsh-users/zsh-syntax-highlighting
+```
+
+Plugin load order matters:
+- `zsh-completions` must be loaded before `compinit` — it adds entries to `fpath` that `compinit` needs to pick up
+- `zsh-syntax-highlighting` must be sourced last — it wraps zle widgets, so anything loaded after it may not get highlighted correctly
+
+### Test on a fresh machine
+
+```bash
+orbctl create ubuntu dotfiles-test
+orb push -m dotfiles-test ~/projects/dotfiles dotfiles
+curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "sh -s -- init --apply --source ~/dotfiles"
+```
+
+SSH in and open a new shell. On first login, Zinit will clone itself and the three plugin repos — you'll see git output. Subsequent logins are instant.
+
+Verify:
+- Type `git ` and pause — autosuggestions should show a grey ghost of a previous command
+- Type a valid command (`ls`) — it should highlight green; type a nonexistent command — it should highlight red
+- Tab-complete a command argument to confirm completions work
+
+### Commit
+
+```bash
+git add dot_zshrc
+git commit -m "iteration 3: zinit + autosuggestions, syntax-highlighting, completions"
+```
+
+---
+
+*More iterations coming — next up: shell tools (zoxide, fzf, eza).*
