@@ -36,3 +36,20 @@ zinit light zsh-users/zsh-completions
 autoload -Uz compinit && compinit
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-syntax-highlighting
+
+# zoxide (smart cd)
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# fzf (fuzzy finder — Ctrl+R, Ctrl+T, Alt+C)
+if command -v fzf &>/dev/null; then
+  eval "$(fzf --zsh)"
+fi
+
+# eza (modern ls)
+if command -v eza &>/dev/null; then
+  alias ls='eza'
+  alias ll='eza -la'
+  alias tree='eza --tree'
+fi

@@ -99,3 +99,22 @@ On first SSH after applying, Zinit clones itself + all three plugin repos. You'l
 Syntax highlighting gives instant feedback on typos in commands before you run them — especially useful when working fast during an AI-assisted session. Autosuggestions make it easy to re-run long commands (build commands, docker runs) without retyping.
 
 ---
+
+## Iteration 4 — Shell tools (zoxide, fzf, eza)
+
+### What was built
+- `run_once_03` script: `brew install zoxide fzf eza`
+- `dot_zshrc`: init blocks for all three tools, eza aliases for `ls`/`ll`/`tree`
+
+### What each tool does
+- **zoxide** — frecency-based `cd` replacement. `z foo` jumps to the most-used directory matching "foo". Learns from your navigation over time.
+- **fzf** — fuzzy finder. `eval "$(fzf --zsh)"` wires up three shell bindings: `Ctrl+R` (history search), `Ctrl+T` (file search), `Alt+C` (cd into subdirectory).
+- **eza** — `ls` replacement with color, icons, git status column in `ll`. Aliased over `ls`/`ll`/`tree` so existing muscle memory works.
+
+### Why a new run_once_ script
+chezmoi tracks `run_once_` scripts by content hash. Modifying `run_once_02` would re-run it on machines that already completed iteration 2 — reinstalling brew tools unnecessarily. A new `run_once_03` is a no-op on existing machines, runs once on fresh ones.
+
+### Relevance to AI coding tools
+fzf's `Ctrl+R` history search is particularly useful in AI coding sessions — you accumulate long build/test/deploy commands and need to re-run them quickly without retyping.
+
+---

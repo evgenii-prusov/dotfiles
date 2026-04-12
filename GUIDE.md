@@ -257,4 +257,71 @@ git commit -m "iteration 3: zinit + autosuggestions, syntax-highlighting, comple
 
 ---
 
-*More iterations coming — next up: shell tools (zoxide, fzf, eza).*
+## Iteration 4 — Shell tools (zoxide, fzf, eza)
+
+Three tools that change how you navigate and interact with the shell day-to-day.
+
+### Create run_once_03
+
+Create `run_once_03-install-shell-tools.sh.tmpl`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+brew install zoxide fzf eza
+```
+
+A new numbered script rather than modifying `run_once_02` — chezmoi tracks scripts by hash, so editing `run_once_02` would re-trigger it on machines that already ran it.
+
+### Update dot_zshrc
+
+Add after the Zinit block:
+
+```zsh
+# zoxide (smart cd)
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# fzf (fuzzy finder — Ctrl+R, Ctrl+T, Alt+C)
+if command -v fzf &>/dev/null; then
+  eval "$(fzf --zsh)"
+fi
+
+# eza (modern ls)
+if command -v eza &>/dev/null; then
+  alias ls='eza'
+  alias ll='eza -la'
+  alias tree='eza --tree'
+fi
+```
+
+### Test on a fresh machine
+
+```bash
+orbctl create ubuntu dotfiles-test
+orb push -m dotfiles-test ~/projects/dotfiles dotfiles
+curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "sh -s -- init --apply --source ~/dotfiles"
+ssh dotfiles-test@orb
+```
+
+Verify:
+- `ls` → eza output with icons/colors
+- `ll` → long listing
+- `tree` → tree view
+- `Ctrl+R` → fzf history search
+- `cd` into a few dirs, then `z <partial-name>` → jumps to the right place
+
+### Commit
+
+```bash
+git add run_once_03-install-shell-tools.sh.tmpl dot_zshrc
+git commit -m "iteration 4: zoxide, fzf, eza"
+```
+
+---
+
+*More iterations coming — next up: tmux.*
