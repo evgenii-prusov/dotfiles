@@ -181,11 +181,13 @@ orbctl create ubuntu dotfiles-test
 orb push -m dotfiles-test ~/projects/dotfiles dotfiles
 ```
 
-Apply, passing the token from your Mac environment:
+Bootstrap chezmoi and apply, passing the token from your Mac environment:
 
 ```bash
-ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN ~/bin/chezmoi apply --source ~/dotfiles"
+curl -fsLS get.chezmoi.io | ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN sh -s -- init --apply --source ~/dotfiles"
 ```
+
+The naive form — `ssh … "sh -c '$(curl …)'"` — doesn't work because `$(curl …)` expands on the Mac before the command is sent, embedding the entire install script as a literal string in the SSH invocation and breaking its internal quoting. Piping curl's output to `sh -s` on the remote avoids this entirely: curl runs on the Mac, the script runs on the VM, and `-- init --apply --source ~/dotfiles` are passed as arguments to it.
 
 Note: OrbStack proxies SSH through its own helper rather than a real sshd, so `SendEnv`/`AcceptEnv` doesn't work there — we pass the token inline in the SSH command instead. On standard remote machines (Azure VMs, etc.) with a real sshd, `SendEnv` in your `~/.ssh/config` will forward it automatically without any inline passing.
 
