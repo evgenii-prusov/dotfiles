@@ -105,4 +105,108 @@ git push
 
 ---
 
-*More iterations coming — next up: Homebrew and a proper prompt.*
+## Iteration 2 — Homebrew, Starship, and gh CLI
+
+With the pipeline proven, we can now add real tooling. This iteration installs Linuxbrew, sets up the Starship prompt, and adds the GitHub CLI — which we'll use in the next step to clone repos and test the prompt across different project types.
+
+### Add the bootstrap script
+
+Create `run_once_02-install-brew-and-tools.sh.tmpl`. The `02-` prefix ensures it runs after the apt script:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Install Linuxbrew if not already installed
+if ! command -v brew &>/dev/null; then
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# Add brew to PATH for the rest of this script
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# Install tools
+brew install starship gh
+
+# Allow GITHUB_TOKEN to be forwarded over SSH
+if ! grep -q "AcceptEnv GITHUB_TOKEN" /etc/ssh/sshd_config; then
+  echo "AcceptEnv GITHUB_TOKEN" | sudo tee -a /etc/ssh/sshd_config
+  sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || true
+fi
+
+# Authenticate gh CLI if token was forwarded
+{{- if env "GITHUB_TOKEN" }}
+echo "{{ env "GITHUB_TOKEN" }}" | gh auth login --with-token
+{{- end }}
+```
+
+A few things worth noting:
+
+- `NONINTERACTIVE=1` skips all prompts in the Homebrew installer — essential for scripted use.
+- Brew is added to `PATH` immediately after install so subsequent `brew install` calls work within the same script run.
+- The `AcceptEnv` block configures sshd to accept a forwarded `GITHUB_TOKEN`. The `|| true` means the script doesn't fail if the SSH service can't be restarted (OrbStack proxies SSH through its own helper rather than running a standard sshd, so the restart will silently no-op there).
+- The `{{- if env "GITHUB_TOKEN" }}` block is a chezmoi template guard — it only emits the `gh auth` line when the variable is present at apply time.
+
+### Update dot_zshrc
+
+Add brew and starship initialization after the key-binding section:
+
+```zsh
+# Homebrew (Linux)
+if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Starship prompt
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi
+```
+
+Both blocks are guarded so `.zshrc` doesn't error on machines that haven't run iteration 2 yet.
+
+### Configure SSH to forward the token
+
+Add a `Host orb` block to your Mac's `~/.ssh/config`, **before** the OrbStack `Include` line (SSH uses first-match, and OrbStack's include already defines the `orb` host — the block below only adds `SendEnv` to it):
+
+```
+Host orb
+  SendEnv GITHUB_TOKEN
+```
+
+### Test on a fresh machine
+
+```bash
+orbctl create ubuntu dotfiles-test
+orb push -m dotfiles-test ~/projects/dotfiles dotfiles
+```
+
+Apply, passing the token from your Mac environment:
+
+```bash
+ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN ~/bin/chezmoi apply --source ~/dotfiles"
+```
+
+Note: OrbStack proxies SSH through its own helper rather than a real sshd, so `SendEnv`/`AcceptEnv` doesn't work there — we pass the token inline in the SSH command instead. On standard remote machines (Azure VMs, etc.) with a real sshd, `SendEnv` in your `~/.ssh/config` will forward it automatically without any inline passing.
+
+Verify:
+
+```bash
+ssh dotfiles-test@orb
+
+# Starship prompt should render
+# Verify gh is authenticated
+gh auth status
+gh repo list
+```
+
+### Commit
+
+```bash
+git add run_once_02-install-brew-and-tools.sh.tmpl dot_zshrc
+git commit -m "iteration 2: homebrew + starship + gh cli"
+```
+
+---
+
+*More iterations coming — next up: shell plugins with Zinit.*

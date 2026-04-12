@@ -10,4 +10,15 @@ fi
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # Install tools
-brew install starship
+brew install starship gh
+
+# Allow GITHUB_TOKEN to be forwarded over SSH
+if ! grep -q "AcceptEnv GITHUB_TOKEN" /etc/ssh/sshd_config; then
+  echo "AcceptEnv GITHUB_TOKEN" | sudo tee -a /etc/ssh/sshd_config
+  sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || true
+fi
+
+# Authenticate gh CLI if token was forwarded
+{{- if env "GITHUB_TOKEN" }}
+echo "{{ env "GITHUB_TOKEN" }}" | gh auth login --with-token
+{{- end }}

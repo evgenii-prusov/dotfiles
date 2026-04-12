@@ -46,3 +46,28 @@ Two issues hit on the first real SSH connection:
 Modern AI coding tools (Claude Code, Cursor, Aider, etc.) all run in the terminal. A reproducible environment means you can spin up a fresh VM for an AI coding session, have your full toolchain in minutes, and tear it down when done. No manual setup, no "it works on my machine."
 
 ---
+
+## Iteration 2 — Homebrew, Starship, and gh CLI
+
+### What was built
+- Linuxbrew installed non-interactively via `NONINTERACTIVE=1`
+- `brew install starship gh`
+- `dot_zshrc` updated with brew shellenv init and `starship init zsh`
+- `run_once_02` script using chezmoi template to authenticate gh CLI via `GITHUB_TOKEN`
+- Mac `~/.ssh/config` updated with `SendEnv GITHUB_TOKEN` for the `orb` host
+
+### Why a separate run_once_02 rather than modifying run_once_01
+`run_once_` scripts are tracked by hash. Modifying script 01 would trigger a re-run of apt/usermod on any VM that already completed iteration 1 — wasteful and potentially surprising. A new numbered script runs once on new machines and is a no-op on existing ones.
+
+### Friction points
+
+1. **OrbStack doesn't run a real sshd** — OrbStack proxies SSH through its own helper app, so `AcceptEnv`/`SendEnv` don't work. `sudo systemctl restart ssh` fails with "Unit not found." Fixed by adding `|| true` so the script doesn't abort. For real remote machines with standard sshd, `SendEnv`/`AcceptEnv` works as expected.
+
+2. **Passing the token without typing it on the VM** — Rather than SSHing in and exporting manually, pass it inline from the Mac: `ssh dotfiles-test@orb "GITHUB_TOKEN=$GITHUB_TOKEN ~/bin/chezmoi apply --source ~/dotfiles"`. The variable is expanded on the Mac side before the command is sent.
+
+3. **chezmoi template guard for the token** — `{{- if env "GITHUB_TOKEN" }}` ensures the `gh auth` line is only emitted when the variable is present. Without the guard, chezmoi would render an empty string and `gh auth login` would fail.
+
+### Relevance to AI coding tools
+gh CLI means you can clone any repo immediately after bootstrap — useful for spinning up a fresh VM for an AI coding session on a specific project without any manual setup.
+
+---
