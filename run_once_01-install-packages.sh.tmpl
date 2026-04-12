@@ -6,6 +6,7 @@ sudo apt-get update -q
 sudo apt-get install -y curl git zsh
 
 # Set zsh as default shell if not already
-if [ "$SHELL" != "$(which zsh)" ]; then
-  sudo usermod -s "$(which zsh)" "$USER"
+zsh_path="$(which zsh)"
+if [[ "$SHELL" != "$zsh_path" ]]; then
+  sudo usermod -s "$zsh_path" "$USER"
 fi
