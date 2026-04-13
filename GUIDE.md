@@ -4,6 +4,20 @@ A step-by-step guide to setting up a modern, portable developer environment that
 
 ---
 
+## Quick start
+
+To bootstrap any new Linux machine from the published repo:
+
+```bash
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply evgenii-prusov
+```
+
+That's it. chezmoi clones this repo from GitHub and applies it — no manual file copying.
+
+> **Dev vs production workflow:** The iterations below use `orb push` + `--source ~/dotfiles` to apply from a *local copy* of the repo. That's intentional — it lets you test uncommitted changes before pushing. For any machine you're not actively developing dotfiles on, the one-liner above is all you need.
+
+---
+
 ## Prerequisites
 
 > **TODO:** Add setup instructions for OrbStack and creating a GitHub repo for dotfiles.
